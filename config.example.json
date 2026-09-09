@@ -1,0 +1,108 @@
+{
+  "_comment": "Full reference config. Copy what you need into config.json. Keys starting with _ are documentation only and are ignored by the script. Only github.host and github.repo are required; every other key has a working default.",
+
+  "github": {
+    "host": "github.com",
+    "repo": "OWNER/REPO",
+    "_host": "github.com for public GitHub, or your Enterprise hostname.",
+    "_repo": "Owner and name from the URL path, not the URL itself."
+  },
+
+  "_defaultProfile": "Name of the profile applied when no --profile flag and no PR_REVIEW_PROFILE env var is given. Remove this key to default to the baseline.",
+  "defaultProfile": "",
+
+  "fetch": {
+    "_maxDiffLines": "Truncate the diff at N lines. Default 800. Use 0 for unlimited.",
+    "maxDiffLines": 800,
+
+    "_includeDiff": "Set false to fetch metadata only, without the diff.",
+    "includeDiff": true,
+
+    "_excludePaths": "REPLACES the built-in exclusion list entirely - it is not merged. The default already covers lockfiles, minified bundles, source maps, snapshots, images, dist/, build/, vendor/, node_modules/, */generated/ and protobuf output. Patterns are shell globs matched against both the full path and the bare filename. An empty array disables exclusion.",
+    "excludePaths": [
+      "*.lock", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock",
+      "Cargo.lock", "go.sum", "composer.lock", "Gemfile.lock",
+      "*.min.js", "*.min.css", "*.map", "*.snap", "*.svg", "*.png", "*.jpg", "*.pdf",
+      "dist/*", "build/*", "vendor/*", "node_modules/*", "*/generated/*",
+      "*.pb.go", "*_pb2.py"
+    ]
+  },
+
+  "review": {
+    "_defaultEvent": "What post submits without --event: COMMENT, APPROVE or REQUEST_CHANGES.",
+    "defaultEvent": "COMMENT",
+
+    "_maxFindings": "Hard cap on findings in one review. Over the cap, the highest severities are kept.",
+    "maxFindings": 25,
+
+    "_minSeverityToPost": "Findings below this severity go in the summary body instead of becoming inline comments.",
+    "minSeverityToPost": "MAJOR",
+
+    "_severityScale": "Optional. Relabels the four levels. Omit to use the defaults in SKILL.md.",
+    "severityScale": [
+      { "id": "BLOCKER", "label": "🔴 BLOCKER", "when": "Security hole, data loss, leaked secret." },
+      { "id": "CRITICAL", "label": "🟠 CRITICAL", "when": "Logic error, unhandled failure, leak, race, broken contract." },
+      { "id": "MAJOR", "label": "🟡 MAJOR", "when": "Untested behaviour, duplication, structural problem." },
+      { "id": "MINOR", "label": "🔵 MINOR", "when": "Naming, dead code, style. Never blocks a merge alone." }
+    ],
+
+    "_teamRules": "Conventions specific to this repository, applied on top of the language-agnostic checks in SKILL.md. This is where language-specific and house rules belong. appliesTo takes shell globs; use [\"*\"] for every file.",
+    "teamRules": [
+      {
+        "id": "no-raw-sql-interpolation",
+        "appliesTo": ["*.py", "*.go", "*.java"],
+        "severity": "BLOCKER",
+        "rule": "Build queries with bound parameters, never string interpolation."
+      },
+      {
+        "id": "constructor-injection",
+        "appliesTo": ["*.java", "*.kt"],
+        "severity": "MAJOR",
+        "rule": "Inject dependencies through the constructor so the class is testable without a container."
+      },
+      {
+        "id": "no-console-log",
+        "appliesTo": ["*.ts", "*.tsx", "*.js"],
+        "severity": "MINOR",
+        "rule": "Use the project logger rather than console output in shipped code."
+      }
+    ]
+  },
+
+  "_profiles": "Named overrides for teams sharing one repository. Select with --profile <name>, the PR_REVIEW_PROFILE env var, or defaultProfile above. A profile merges over the baseline key by key: objects merge, arrays replace. Anything a profile does not mention is inherited. Use teamRulesAdd to ADD rules on top of the baseline; use teamRules to replace them outright.",
+  "profiles": {
+    "platform": {
+      "fetch": { "maxDiffLines": 2500 },
+      "review": {
+        "minSeverityToPost": "CRITICAL",
+        "teamRulesAdd": [
+          {
+            "id": "migration-needs-rollback",
+            "appliesTo": ["*/migrations/*"],
+            "severity": "BLOCKER",
+            "rule": "Every forward migration needs a tested rollback path."
+          }
+        ]
+      }
+    },
+
+    "frontend": {
+      "fetch": { "excludePaths": ["*.lock", "package-lock.json", "*.snap", "*.map", "dist/*", "*.css"] },
+      "review": { "maxFindings": 10 }
+    },
+
+    "data": {
+      "fetch": { "maxDiffLines": 1500 },
+      "review": {
+        "teamRulesAdd": [
+          {
+            "id": "no-silent-schema-change",
+            "appliesTo": ["*.sql", "*.avsc", "*.proto"],
+            "severity": "BLOCKER",
+            "rule": "A field rename or type change needs a versioned schema and a consumer migration note."
+          }
+        ]
+      }
+    }
+  }
+}
