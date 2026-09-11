@@ -28,7 +28,7 @@ readonly EXIT_API=6
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-DEFAULT_HOST="github.com"
+DEFAULT_HOST="github.com"  # [CHANGE-ME: your org GitHub Enterprise host, e.g. sgithub.your-org.internal]
 DEFAULT_MAX_DIFF_LINES=800
 DEFAULT_EVENT="COMMENT"
 

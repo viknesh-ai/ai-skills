@@ -4,7 +4,7 @@
   "github": {
     "host": "github.com",
     "repo": "OWNER/REPO",
-    "_host": "github.com for public GitHub, or your Enterprise hostname.",
+    "_host": "[CHANGE-ME: your org GitHub Enterprise host, e.g. sgithub.your-org.internal] github.com for public GitHub, or your Enterprise hostname.",
     "_repo": "Owner and name from the URL path, not the URL itself."
   },
 
