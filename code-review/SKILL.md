@@ -33,7 +33,7 @@ Run the script from the skill folder or give its full path. It finds `config.jso
 }
 ```
 
-`host` is `github.com` for public GitHub, or the internal hostname for a GitHub Enterprise install **[CHANGE-ME: set this to your org GitHub Enterprise host, e.g. `sgithub.your-org.internal`]**. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
+`host` is `github.com` (change it to org host name here) for public GitHub, or the internal hostname for a GitHub Enterprise install. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
 
 ## Step 1 — Identify the pull request
 

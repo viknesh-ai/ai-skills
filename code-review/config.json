@@ -1,6 +1,6 @@
 {
   "github": {
-    "_host": "[CHANGE-ME: replace github.com below with your org GitHub Enterprise host, e.g. sgithub.your-org.internal. Keys starting with _ are ignored by the script.]",
+    "_host": "(change it to org host name here)",
     "host": "github.com",
     "repo": "OWNER/REPO"
   }

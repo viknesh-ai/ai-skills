@@ -39,21 +39,21 @@ Then set your target in `config.json`:
 ```json
 {
   "github": {
-    "_host": "[CHANGE-ME: your org GitHub Enterprise host, e.g. sgithub.your-org.internal]",
+    "_host": "(change it to org host name here)",
     "host": "github.com",
     "repo": "your-org/your-repo"
   }
 }
 ```
 
-`host` ships as `github.com` **[CHANGE-ME: replace with your org GitHub Enterprise host, e.g. `sgithub.your-org.internal`]**; leave it as `github.com` only if you are reviewing repositories on public GitHub. `repo` is the owner and name from the URL path. That is the entire required configuration.
+`host` ships as `github.com` (change it to org host name here); leave it as `github.com` only if you are reviewing repositories on public GitHub. `repo` is the owner and name from the URL path. That is the entire required configuration.
 
 ### Where the host is set
 
-Every place the GitHub host appears is tagged with `CHANGE-ME`, so you can find them all at once:
+Every place the GitHub host appears is marked `(change it to org host name here)`, so you can find them all at once:
 
 ```bash
-grep -rn "CHANGE-ME" .
+grep -rn "org host name here" .
 ```
 
 | File | What to change |
@@ -80,7 +80,7 @@ Ask in plain language:
 >
 > Review https://github.com/your-org/your-repo/pull/482
 >
-> _[CHANGE-ME: in your own usage this is your org GitHub host, e.g. `https://sgithub.your-org.internal/your-org/your-repo/pull/482`]_
+> _github.com (change it to org host name here)_
 >
 > What's wrong with #482?
 
@@ -113,7 +113,7 @@ Objects merge key by key, so a profile only states what differs. Arrays replace 
 ```json
 {
   "github": { "host": "github.com", "repo": "your-org/your-repo" },
-  "_host": "[CHANGE-ME: your org GitHub Enterprise host]",
+  "_host": "(change it to org host name here)",
   "review": { "maxFindings": 25, "minSeverityToPost": "MAJOR" },
 
   "profiles": {
