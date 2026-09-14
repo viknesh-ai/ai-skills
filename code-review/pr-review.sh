@@ -28,7 +28,7 @@ readonly EXIT_API=6
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-DEFAULT_HOST="sgithub.fr.world.socgen"
+DEFAULT_HOST="github.com"
 DEFAULT_MAX_DIFF_LINES=800
 DEFAULT_EVENT="COMMENT"
 

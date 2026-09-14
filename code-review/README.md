@@ -9,36 +9,45 @@ GitHub reviews API. The comments land in the GitHub web UI on the
 **Files changed** tab, each with a *Resolve conversation* button, and the
 summary lands on the **Conversation** tab as a single review event.
 
-Works with any repository and any programming language.
+Works with any repository, any GitHub host including Enterprise, and any
+programming language.
 
 ## Requirements
 
-`gh` (authenticated against your host) and `jq`.
+- `gh`, authenticated against your host
+- `jq`
+- Bash — macOS, Linux, or WSL / Git Bash on Windows
 
 ## Install
 
-Copy this folder into `.github/skills/` so everyone working in the repository
-picks it up.
+This is a plain Agent Skills folder, so it works in any agent that supports
+skills. Copy it into whichever skills directory your agent reads.
 
 ```bash
+# Checked into the repository, so everyone working in it picks the skill up
 mkdir -p .github/skills
 cp -r code-review .github/skills/pr-review
 chmod +x .github/skills/pr-review/pr-review.sh
 ```
 
-Then set your repository in `.github/skills/pr-review/config.json`:
+Common personal locations, if you would rather have the skill everywhere you
+work: `~/.config/skills`, `~/.claude/skills`, `~/.copilot/skills`. Only the
+destination changes.
+
+Then set your repository in the skill's `config.json`:
 
 ```json
 {
   "github": {
-    "host": "sgithub.fr.world.socgen",
+    "host": "github.com",
     "repo": "your-org/your-repo"
   }
 }
 ```
 
-`host` is already set. `repo` is the owner and name from the URL path — not the
-full URL. Nothing else is required.
+`host` is `github.com` for public GitHub, or your GitHub Enterprise hostname.
+`repo` is the owner and name from the URL path — not the full URL. Nothing else
+is required.
 
 ## Use
 
@@ -46,7 +55,7 @@ Ask in plain language:
 
 > Review PR 482
 
-Copilot fetches the PR, reviews the changed lines, and writes the findings in
+The agent fetches the PR, reviews the changed lines, and writes the findings in
 chat like this:
 
 ```
@@ -68,7 +77,7 @@ explicit yes, and always after a dry run that shows you the exact payload.
 A PR URL works too, and carries its own host and repository, so you can review
 a PR in a repo you have not configured:
 
-> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
+> Review https://github.com/your-org/your-repo/pull/482
 
 ## Optional configuration
 
@@ -103,7 +112,7 @@ inherited rules so a team can extend the baseline without restating it.
 
 ```json
 {
-  "github": { "host": "sgithub.fr.world.socgen", "repo": "your-org/your-repo" },
+  "github": { "host": "github.com", "repo": "your-org/your-repo" },
   "review": { "maxFindings": 25, "minSeverityToPost": "MAJOR" },
 
   "profiles": {

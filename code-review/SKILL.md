@@ -13,7 +13,7 @@ Nothing about a particular company, host or repository belongs in this file. The
 ## Files
 
 ```
-.github/skills/pr-review/
+pr-review/
 ├── SKILL.md          this file
 ├── config.json       the GitHub host and repository to review
 └── pr-review.sh      fetch and post
@@ -26,13 +26,13 @@ Run the script from the skill folder or give its full path. It finds `config.jso
 ```json
 {
   "github": {
-    "host": "sgithub.fr.world.socgen",
+    "host": "<hostname>",
     "repo": "<owner>/<repo>"
   }
 }
 ```
 
-`host` ships as `sgithub.fr.world.socgen`. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
+`host` is `github.com` for public GitHub, or the internal hostname for a GitHub Enterprise install. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
 
 ## Step 1 — Identify the pull request
 
@@ -175,7 +175,7 @@ Under `review`: `defaultEvent` sets what `post` submits without `--event`, `maxF
 
 ```json
 {
-  "github": { "host": "sgithub.fr.world.socgen", "repo": "<owner>/<repo>" },
+  "github": { "host": "<hostname>", "repo": "<owner>/<repo>" },
   "fetch": { "maxDiffLines": 2000, "excludePaths": ["*.lock", "*/generated/*"] },
   "review": {
     "maxFindings": 15,
