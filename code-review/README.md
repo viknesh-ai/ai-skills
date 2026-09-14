@@ -1,76 +1,54 @@
 # pr-review
 
-An [Agent Skill](https://agentskills.io) that reviews GitHub pull requests. It fetches a PR's metadata and diff, produces a severity-ranked review, and can post the findings back as line-anchored comments a developer can resolve — the same shape a human reviewer's comments take.
+Reviews a GitHub pull request and posts the findings back to the PR as
+line-anchored comments — the same shape a human reviewer's comments take.
 
-Works with any repository, any GitHub host including Enterprise, and any programming language.
+It fetches the PR's metadata and diff, ranks what it finds by severity, shows
+you the review in chat, and — only if you say yes — submits it through the
+GitHub REST API so the comments appear in the GitHub web UI on the
+**Files changed** tab, each with a *Resolve conversation* button.
 
-## What it does
-
-- Fetches PR metadata and a **line-numbered diff**, with lockfiles, minified bundles and generated code already filtered out
-- Reviews changed lines against correctness, failure paths, resource handling, concurrency, trust boundaries, secrets, contract compatibility, tests, observability, performance and clarity
-- Delivers the review in chat, ranked BLOCKER / CRITICAL / MAJOR / MINOR
-- Optionally posts it as an inline review — findings land on the *Files changed* tab with a *Resolve conversation* button, the summary lands on the *Conversation* tab
-- Verifies every path and line against the real diff **before** posting, so a wrong line number is caught locally instead of GitHub rejecting the review
+Works with any repository and any programming language.
 
 ## Requirements
 
-- [GitHub CLI](https://cli.github.com) (`gh`), authenticated against your host
-- `jq`
-- Bash 4+ (macOS, Linux, WSL, or Git Bash on Windows)
+- Windows, with Windows PowerShell 5.1 (built in) or PowerShell 7
+- GitHub CLI (`gh`), authenticated against your host
+
+Nothing else — no `jq`, no other tooling. The script handles JSON itself.
+
+```powershell
+winget install --id GitHub.cli
+gh auth login --hostname sgithub.fr.world.socgen
+```
 
 ## Install
 
-Clone it straight into a skills directory:
+Copy this folder into a skills directory.
 
-```bash
-# Repository scope — checked in, picked up by everyone working in the repo
-git clone <repo-url> .github/skills/pr-review
+```powershell
+# Personal — available in every repository you work on
+Copy-Item -Recurse code-review "$HOME\.claude\skills\pr-review"
 
-# Personal scope — available in every repository you work on
-git clone <repo-url> ~/.copilot/skills/pr-review
+# Repository — checked in, so everyone working in the repo picks it up
+Copy-Item -Recurse code-review ".claude\skills\pr-review"
 ```
 
-Or download the repository and copy its contents into `.github/skills/pr-review/`.
+## Configure
 
-The skill follows the [Agent Skills](https://agentskills.io) format, so the same folder also works in any other client that supports it — drop it in that client's skills directory instead.
-
-Then set your target in `config.json`:
+Set your repository in `config.json`:
 
 ```json
 {
   "github": {
-    "_host": "(change it to org host name here)",
-    "host": "github.com",
+    "host": "sgithub.fr.world.socgen",
     "repo": "your-org/your-repo"
   }
 }
 ```
 
-`host` ships as `github.com` (change it to org host name here); leave it as `github.com` only if you are reviewing repositories on public GitHub. `repo` is the owner and name from the URL path. That is the entire required configuration.
-
-### Where the host is set
-
-Every place the GitHub host appears is marked `(change it to org host name here)`, so you can find them all at once:
-
-```bash
-grep -rn "org host name here" .
-```
-
-| File | What to change |
-| --- | --- |
-| `config.json` | `github.host` — the only one that actually has to change for the skill to run |
-| `config.example.json` | `github._host` — reference doc only |
-| `pr-review.sh` | `DEFAULT_HOST` — fallback used when `config.json` sets no host |
-| `README.md` | Example snippets and URLs — documentation only |
-| `SKILL.md` | Configuration prose — documentation only |
-
-Only `config.json` is required. The rest are examples and defaults you can leave as they are.
-
-Verify the CLI is authenticated:
-
-```bash
-gh auth status --hostname <your-host>
-```
+`host` is already set to `sgithub.fr.world.socgen`. `repo` is the owner and
+name from the URL path — not the full URL. That is the whole required setup.
 
 ## Use
 
@@ -78,42 +56,60 @@ Ask in plain language:
 
 > Review PR 482
 >
-> Review https://github.com/your-org/your-repo/pull/482
->
-> _github.com (change it to org host name here)_
+> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
 >
 > What's wrong with #482?
 
-A PR URL carries its own host and repository, so anyone can review a PR in a repo they have not configured. After the review, you will be offered the option to post it back; nothing is written to GitHub without an explicit confirmation, and always after a dry run that shows you the exact payload.
+A PR URL carries its own host and repository, so you can review a PR in a repo
+you have not configured.
 
-The script also runs standalone:
+After the review you are offered the option to post it back. Nothing is written
+to GitHub without an explicit yes, and always after a dry run that shows you the
+exact payload first.
 
-```bash
-bash scripts/pr-review.sh fetch --pr 482
-bash scripts/pr-review.sh post  --pr 482 --comments findings.json --dry-run
+### Running the script directly
+
+```powershell
+.\pr-review.ps1 fetch --pr 482
+.\pr-review.ps1 post  --pr 482 --comments findings.json --body "Summary" --dry-run
 ```
 
-`bash scripts/pr-review.sh --help` lists every flag.
+`.\pr-review.ps1 --help` lists every flag.
 
-## Configuration
+## Optional configuration
 
-Only `github.host` and `github.repo` are required. [`config.example.json`](config.example.json) documents every other key inline — JSON has no comments, so notes live in `_`-prefixed keys that the script ignores. Copy the pieces you want into `config.json`.
+Only `github.host` and `github.repo` are required.
+[`config.example.json`](config.example.json) documents every other key inline —
+JSON has no comments, so the notes live in `_`-prefixed keys the script ignores.
+Copy the pieces you want into `config.json`.
 
-### Different teams, different requirements
+The keys worth knowing:
+
+| Key | What it does |
+| --- | --- |
+| `fetch.maxDiffLines` | Truncate the diff at N lines. Default 800, `0` for unlimited. |
+| `fetch.excludePaths` | Replaces the built-in skip list (lockfiles, bundles, `dist/`, `vendor/`, generated code). |
+| `review.maxFindings` | Hard cap on findings in one review. Default 25. |
+| `review.minSeverityToPost` | Findings below this go in the summary instead of becoming inline comments. |
+| `review.teamRules` | Conventions specific to your repository, applied on top of the built-in checks. |
+
+### Per-team settings
 
 Config resolves in four layers, each overriding the one before:
 
-1. **`config.json`** — the committed baseline everyone shares
-2. **A profile** — named overrides for one team, selected by `--profile <name>`, the `PR_REVIEW_PROFILE` environment variable, or a `defaultProfile` key
-3. **`config.local.json`** — gitignored, for one developer or one machine
-4. **Command-line flags** — `--repo`, `--max-diff-lines` and friends, for one run
+1. `config.json` — the committed baseline everyone shares
+2. A profile — named overrides selected by `--profile <name>`, the
+   `PR_REVIEW_PROFILE` environment variable, or a `defaultProfile` key
+3. `config.local.json` — gitignored, for one developer or one machine
+4. Command-line flags — for one run
 
-Objects merge key by key, so a profile only states what differs. Arrays replace wholesale, so an `excludePaths` override is taken exactly as written. The exception is `review.teamRulesAdd`, which appends to the inherited rules so a team can extend the baseline without restating it.
+Objects merge key by key, so a profile only states what differs. Arrays replace
+wholesale. The exception is `review.teamRulesAdd`, which appends to the
+inherited rules so a team can extend the baseline without restating it.
 
 ```json
 {
-  "github": { "host": "github.com", "repo": "your-org/your-repo" },
-  "_host": "(change it to org host name here)",
+  "github": { "host": "sgithub.fr.world.socgen", "repo": "your-org/your-repo" },
   "review": { "maxFindings": 25, "minSeverityToPost": "MAJOR" },
 
   "profiles": {
@@ -138,23 +134,29 @@ Objects merge key by key, so a profile only states what differs. Arrays replace 
 }
 ```
 
-```bash
-bash scripts/pr-review.sh fetch --pr 482 --profile platform
+```powershell
+.\pr-review.ps1 fetch --pr 482 --profile platform
 ```
 
-The platform team gets a bigger diff budget, a higher bar for inline comments, and its migration rule on top of the shared ones. The frontend team inherits everything and caps findings at ten. Neither maintains its own copy of the config, so a change to the baseline reaches both.
+The platform team gets a bigger diff budget, a higher bar for inline comments,
+and its migration rule on top of the shared ones. The frontend team inherits
+everything and caps findings at ten. Neither keeps its own copy of the config.
 
-## Design notes
+## Why it is built this way
 
-**Deterministic work stays in the script.** Path filtering, line-number mapping, comment validation and error classification are handled in Bash, not by the model. The diff arrives with each line's new-file line number already attached, so the reviewer never derives one from a hunk header — the most common cause of a rejected review. This is what makes the skill behave predictably on smaller and cheaper models.
+**The deterministic work stays in the script.** Path filtering, line-number
+mapping, comment validation and error classification happen in PowerShell, not
+in the model. The diff arrives with each line's new-file line number already
+attached, so the reviewer never derives one from a hunk header — the most common
+cause of a rejected review.
 
-**Two guards before any write.** The dry run rejects malformed entries, paths the PR does not touch, and lines absent from the diff, naming each offender. Nothing reaches GitHub until those pass and the user says yes.
+**Two guards before any write.** The dry run rejects malformed entries, paths
+the PR does not touch, and lines absent from the diff, naming each offender.
+Nothing reaches GitHub until those pass and you say yes.
 
-**Language-agnostic by construction.** The review criteria are properties of programs, not of syntax. Ecosystem-specific rules live in configuration, so one skill serves a Go service, a React app and a Terraform module without forking.
-
-## Contributing
-
-Issues and pull requests welcome. Two things to keep in mind: `SKILL.md` should stay well under 500 lines so it remains cheap to load, and nothing environment-specific — a hostname, an owner, a repo name — belongs anywhere outside `config.json`.
+**Language-agnostic by construction.** The review criteria are properties of
+programs, not of syntax. Ecosystem-specific rules live in configuration, so one
+skill serves a Java service, a React app and a Terraform module.
 
 ## License
 

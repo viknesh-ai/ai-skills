@@ -2,9 +2,9 @@
   "_comment": "Full reference config. Copy what you need into config.json. Keys starting with _ are documentation only and are ignored by the script. Only github.host and github.repo are required; every other key has a working default.",
 
   "github": {
-    "host": "github.com",
+    "host": "sgithub.fr.world.socgen",
     "repo": "OWNER/REPO",
-    "_host": "(change it to org host name here) github.com for public GitHub, or your Enterprise hostname.",
+    "_host": "The GitHub Enterprise hostname to review against.",
     "_repo": "Owner and name from the URL path, not the URL itself."
   },
 

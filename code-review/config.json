@@ -1,7 +1,6 @@
 {
   "github": {
-    "_host": "(change it to org host name here)",
-    "host": "github.com",
+    "host": "sgithub.fr.world.socgen",
     "repo": "OWNER/REPO"
   }
 }
