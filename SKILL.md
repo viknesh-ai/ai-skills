@@ -28,13 +28,13 @@ Run the script from the skill folder or give its full path. It finds `config.jso
 ```json
 {
   "github": {
-    "host": "sgithub.fr.world.socgen",
+    "host": "github.com",
     "repo": "<owner>/<repo>"
   }
 }
 ```
 
-`host` ships as `sgithub.fr.world.socgen` and rarely changes. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
+`host` ships as `github.com`, which is right for public GitHub; a GitHub Enterprise install needs its own hostname there instead. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
 
 ## Step 1 — Identify the pull request
 
@@ -184,7 +184,7 @@ Under `review`: `defaultEvent` sets what `post` submits without `--event`, `maxF
 
 ```json
 {
-  "github": { "host": "sgithub.fr.world.socgen", "repo": "<owner>/<repo>" },
+  "github": { "host": "github.com", "repo": "<owner>/<repo>" },
   "fetch": { "maxDiffLines": 2000, "excludePaths": ["*.lock", "*/generated/*"] },
   "review": {
     "maxFindings": 15,

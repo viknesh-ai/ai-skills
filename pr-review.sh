@@ -8,7 +8,7 @@
 # Usage:
 #   bash pr-review.sh fetch --pr <PR_NUMBER_OR_URL> \
 #     [--config <path>]               default: config.json beside this script
-#     [--host <GH_HOST>]              default: sgithub.fr.world.socgen
+#     [--host <GH_HOST>]              default: github.com
 #     [--repo <OWNER/REPO>]           default: github.repo from the config
 #     [--profile <NAME>]              apply a named profile from the config
 #     [--no-diff]                     metadata only, skip the diff
@@ -73,7 +73,7 @@ readonly EXIT_API=6
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-DEFAULT_HOST="sgithub.fr.world.socgen"
+DEFAULT_HOST="github.com"
 DEFAULT_MAX_DIFF_LINES=800
 DEFAULT_EVENT="COMMENT"
 

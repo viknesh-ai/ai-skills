@@ -29,14 +29,15 @@ Set your repository in `.github/skills/pr-review/config.json`:
 ```json
 {
   "github": {
-    "host": "sgithub.fr.world.socgen",
+    "host": "github.com",
     "repo": "your-org/your-repo"
   }
 }
 ```
 
-`repo` is the owner and name from the URL path, not the full URL. The host is
-already set. Nothing else is required.
+`repo` is the owner and name from the URL path, not the full URL. Leave `host`
+as `github.com` unless you review on a GitHub Enterprise install, in which case
+put its hostname there. Nothing else is required.
 
 ## Use
 
@@ -70,13 +71,13 @@ Tell it not to post and it will keep the review in chat instead.
 A PR URL works too, and carries its own repository, so you can review a PR in a
 repo you have not configured:
 
-> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
+> Review https://github.com/your-org/your-repo/pull/482
 
 ## Requirements
 
 Windows, with Git Bash.
 
-- `gh`, authenticated: `gh auth login --hostname sgithub.fr.world.socgen`
+- `gh`, authenticated: `gh auth login --hostname github.com`
 - `jq`: `envinstall jq`
 
 ## Optional configuration
