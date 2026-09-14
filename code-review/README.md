@@ -20,19 +20,18 @@ programming language.
 
 ## Install
 
-This is a plain Agent Skills folder, so it works in any agent that supports
-skills. Copy it into whichever skills directory your agent reads.
+From the root of the repository you want the skill in:
 
 ```bash
-# Checked into the repository, so everyone working in it picks the skill up
-mkdir -p .github/skills
-cp -r code-review .github/skills/pr-review
-chmod +x .github/skills/pr-review/pr-review.sh
+curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | bash -s -- code-review
 ```
 
-Common personal locations, if you would rather have the skill everywhere you
-work: `~/.config/skills`, `~/.claude/skills`, `~/.copilot/skills`. Only the
-destination changes.
+That creates `.github/skills/code-review/`. To install for yourself rather than
+the repository, point it at your agent's own skills directory instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | AI_SKILLS_DEST=~/.config/skills bash -s -- code-review
+```
 
 Then set your repository in the skill's `config.json`:
 

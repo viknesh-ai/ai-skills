@@ -7,31 +7,31 @@ Agent Skills for AI coding agents.
 | [`code-review`](code-review/) | Reviews a GitHub pull request and posts the findings back to the PR as inline comments. |
 
 Each skill is a plain folder in the Agent Skills format — a `SKILL.md` plus the
-files it needs — so it works in any agent that supports skills. Nothing in it is
-tied to one client.
+files it needs — so it works in any agent that supports skills.
 
 ## Install
 
-Clone the repository and copy the skill into your agent's skills directory.
+From the root of the repository you want the skill in:
 
 ```bash
-git clone https://github.com/your-org/ai-skills.git
+curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | bash
 ```
 
-Pick the directory your agent reads:
+That creates `.github/skills/code-review/`, checked into your repository so
+everyone working in it picks the skill up. Name a skill to install just that
+one:
 
 ```bash
-# Checked into the repository, so everyone working in it picks the skill up
-mkdir -p .github/skills
-cp -r ai-skills/code-review .github/skills/pr-review
-chmod +x .github/skills/pr-review/pr-review.sh
+curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | bash -s -- code-review
 ```
 
-Common personal locations, if you would rather have the skill everywhere you
-work: `~/.config/skills`, `~/.claude/skills`, `~/.copilot/skills`. The copy is
-the same either way — only the destination changes.
+To install for yourself instead of the repository, point it somewhere else:
 
-Then set your repository in the skill's `config.json`:
+```bash
+curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | AI_SKILLS_DEST=~/.config/skills bash
+```
+
+Then set your repository in `.github/skills/code-review/config.json`:
 
 ```json
 {
