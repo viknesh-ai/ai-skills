@@ -1,35 +1,47 @@
 # ai-skills
 
-Agent Skills for use with Claude Code on Windows.
+Agent Skills for Claude Code.
 
 | Skill | What it does |
 | --- | --- |
-| [`code-review`](code-review/) | Reviews a GitHub pull request against a severity rubric and posts the findings back to the PR as inline comments. |
+| [`code-review`](code-review/) | Reviews a GitHub pull request and posts the findings back to the PR as inline comments. |
+
+## Install
+
+Clone this repository and run the install script. It copies the skills into
+`~/.claude/skills`, so they work in every repository you open.
+
+```bash
+git clone https://sgithub.fr.world.socgen/your-org/ai-skills.git
+cd ai-skills
+./install.sh
+```
+
+Then set your repository in `~/.claude/skills/pr-review/config.json`:
+
+```json
+{
+  "github": {
+    "host": "sgithub.fr.world.socgen",
+    "repo": "your-org/your-repo"
+  }
+}
+```
+
+That is the whole setup.
+
+## Use
+
+Just ask:
+
+> Review PR 482
+
+Claude fetches the pull request, reviews the diff, and shows you the findings
+ranked by severity. If you say yes, it posts them back to the PR as inline
+comments on the **Files changed** tab.
 
 ## Requirements
 
-- Windows, with Windows PowerShell 5.1 (built in) or PowerShell 7
-- GitHub CLI (`gh`), authenticated against your host
+`gh` (authenticated against your host) and `jq`.
 
-```powershell
-winget install --id GitHub.cli
-gh auth login --hostname sgithub.fr.world.socgen
-```
-
-## Install a skill
-
-Copy the skill folder into your skills directory — personal scope to have it
-everywhere, or repository scope so everyone working in the repo picks it up.
-
-```powershell
-# Personal scope
-New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
-Copy-Item -Recurse code-review "$HOME\.claude\skills\pr-review"
-
-# Repository scope
-New-Item -ItemType Directory -Force ".claude\skills" | Out-Null
-Copy-Item -Recurse code-review ".claude\skills\pr-review"
-```
-
-Then set `github.repo` in the skill's `config.json`. See
-[`code-review/README.md`](code-review/README.md) for the rest.
+See [`code-review/README.md`](code-review/README.md) for optional configuration.

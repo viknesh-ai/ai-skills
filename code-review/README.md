@@ -5,38 +5,25 @@ line-anchored comments — the same shape a human reviewer's comments take.
 
 It fetches the PR's metadata and diff, ranks what it finds by severity, shows
 you the review in chat, and — only if you say yes — submits it through the
-GitHub REST API so the comments appear in the GitHub web UI on the
-**Files changed** tab, each with a *Resolve conversation* button.
+GitHub reviews API. The comments land in the GitHub web UI on the
+**Files changed** tab, each with a *Resolve conversation* button, and the
+summary lands on the **Conversation** tab as a single review event.
 
 Works with any repository and any programming language.
 
 ## Requirements
 
-- Windows, with Windows PowerShell 5.1 (built in) or PowerShell 7
-- GitHub CLI (`gh`), authenticated against your host
-
-Nothing else — no `jq`, no other tooling. The script handles JSON itself.
-
-```powershell
-winget install --id GitHub.cli
-gh auth login --hostname sgithub.fr.world.socgen
-```
+`gh` (authenticated against your host) and `jq`.
 
 ## Install
 
-Copy this folder into a skills directory.
+From the root of this repository:
 
-```powershell
-# Personal — available in every repository you work on
-Copy-Item -Recurse code-review "$HOME\.claude\skills\pr-review"
-
-# Repository — checked in, so everyone working in the repo picks it up
-Copy-Item -Recurse code-review ".claude\skills\pr-review"
+```bash
+./install.sh
 ```
 
-## Configure
-
-Set your repository in `config.json`:
+Then set your repository in `~/.claude/skills/pr-review/config.json`:
 
 ```json
 {
@@ -47,34 +34,38 @@ Set your repository in `config.json`:
 }
 ```
 
-`host` is already set to `sgithub.fr.world.socgen`. `repo` is the owner and
-name from the URL path — not the full URL. That is the whole required setup.
+`host` is already set. `repo` is the owner and name from the URL path — not the
+full URL. Nothing else is required.
 
 ## Use
 
 Ask in plain language:
 
 > Review PR 482
->
-> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
->
-> What's wrong with #482?
 
-A PR URL carries its own host and repository, so you can review a PR in a repo
-you have not configured.
+Claude fetches the PR, reviews the changed lines, and writes the findings in
+chat like this:
 
-After the review you are offered the option to post it back. Nothing is written
-to GitHub without an explicit yes, and always after a dry run that shows you the
-exact payload first.
+```
+PR #482 — Add per-tenant rate limiting
+acoulton · feat/rate-limit → main · 4 files · +182 / -31
+Reviews: 0 approved, 0 changes requested · CI: SUCCESS
 
-### Running the script directly
-
-```powershell
-.\pr-review.ps1 fetch --pr 482
-.\pr-review.ps1 post  --pr 482 --comments findings.json --body "Summary" --dry-run
+[🟠 CRITICAL] Refill happens outside the lock
+src/limiter.ts — line 16
+Two concurrent requests can both pass the capacity check because the token
+count is decremented outside the critical section, so the bucket goes negative
+under load and the limiter stops limiting.
+Fix: move the decrement inside the lock, or use an atomic compare-and-swap.
 ```
 
-`.\pr-review.ps1 --help` lists every flag.
+Then it offers to post the review. Nothing is written to GitHub without an
+explicit yes, and always after a dry run that shows you the exact payload.
+
+A PR URL works too, and carries its own host and repository, so you can review
+a PR in a repo you have not configured:
+
+> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
 
 ## Optional configuration
 
@@ -134,21 +125,26 @@ inherited rules so a team can extend the baseline without restating it.
 }
 ```
 
-```powershell
-.\pr-review.ps1 fetch --pr 482 --profile platform
-```
-
 The platform team gets a bigger diff budget, a higher bar for inline comments,
 and its migration rule on top of the shared ones. The frontend team inherits
 everything and caps findings at ten. Neither keeps its own copy of the config.
 
+## Running the script directly
+
+```bash
+bash pr-review.sh fetch --pr 482
+bash pr-review.sh post  --pr 482 --comments findings.json --body "Summary" --dry-run
+```
+
+`bash pr-review.sh --help` lists every flag.
+
 ## Why it is built this way
 
 **The deterministic work stays in the script.** Path filtering, line-number
-mapping, comment validation and error classification happen in PowerShell, not
-in the model. The diff arrives with each line's new-file line number already
-attached, so the reviewer never derives one from a hunk header — the most common
-cause of a rejected review.
+mapping, comment validation and error classification happen in Bash, not in the
+model. The diff arrives with each line's new-file line number already attached,
+so the reviewer never derives one from a hunk header — the most common cause of
+a rejected review.
 
 **Two guards before any write.** The dry run rejects malformed entries, paths
 the PR does not touch, and lines absent from the diff, naming each offender.
