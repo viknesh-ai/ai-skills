@@ -19,6 +19,8 @@ pr-review/
 └── pr-review.sh      fetch and post
 ```
 
+These sit together at the root of the skill folder.
+
 Run the script from the skill folder or give its full path. It finds `config.json` next to itself, at `--config <file>`, or at `$PR_REVIEW_CONFIG`.
 
 ## Configure once
