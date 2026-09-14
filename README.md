@@ -5,50 +5,38 @@ the PR as line-anchored comments — the same shape a human reviewer's comments
 take.
 
 It fetches the PR's metadata and diff, ranks what it finds by severity, shows
-you the review in chat, and — only if you say yes — submits it through the
-GitHub reviews API. The comments land in the GitHub web UI on the
-**Files changed** tab, each with a *Resolve conversation* button, and the
-summary lands on the **Conversation** tab as a single review event.
+you the review in chat, and submits it through the GitHub reviews API. The
+comments land on the **Files changed** tab, each with a *Resolve conversation*
+button, and the summary lands on the **Conversation** tab as one review event.
 
-Works with any repository, any GitHub host including Enterprise, and any
-programming language.
+Works with any repository and any programming language.
 
 ## Install
 
-One line, from the root of the repository you want the skill in. Works the same
-in PowerShell, Command Prompt, Git Bash and any terminal on macOS or Linux:
+In Git Bash, from the root of the repository you want the skill in:
 
 ```
 git clone https://github.com/viknesh-ai/ai-skills.git .github/skills/pr-review
 ```
 
-That is it — git creates `.github/skills/pr-review/` for you. Checked into your
-repository, the skill is picked up by everyone working in it.
-
-To install it for yourself instead, clone into your agent's own skills
-directory rather than `.github/skills`:
-
-```
-git clone https://github.com/viknesh-ai/ai-skills.git ~/.config/skills/pr-review
-```
+Git creates `.github/skills/pr-review/` for you. That is the whole install.
+Checked in, the skill is picked up by everyone working in the repository.
 
 ## Configure
 
-Set the repository you want reviewed in
-`.github/skills/pr-review/config.json`:
+Set your repository in `.github/skills/pr-review/config.json`:
 
 ```json
 {
   "github": {
-    "host": "github.com",
+    "host": "sgithub.fr.world.socgen",
     "repo": "your-org/your-repo"
   }
 }
 ```
 
-`host` is `github.com` for public GitHub, or your GitHub Enterprise hostname.
-`repo` is the owner and name from the URL path — not the full URL. Nothing else
-is required.
+`repo` is the owner and name from the URL path, not the full URL. The host is
+already set. Nothing else is required.
 
 ## Use
 
@@ -57,11 +45,11 @@ Ask in plain language:
 > Review PR 482
 
 The agent fetches the PR, reviews the changed lines, and writes the findings in
-chat like this:
+chat:
 
 ```
 PR #482 — Add per-tenant rate limiting
-acoulton · feat/rate-limit → main · 4 files · +182 / -31
+dupont · feat/rate-limit → main · 4 files · +182 / -31
 Reviews: 0 approved, 0 changes requested · CI: SUCCESS
 
 [🟠 CRITICAL] Refill happens outside the lock
@@ -72,106 +60,33 @@ under load and the limiter stops limiting.
 Fix: move the decrement inside the lock, or use an atomic compare-and-swap.
 ```
 
-Then it offers to post the review. Nothing is written to GitHub without an
-explicit yes, and always after a dry run that shows you the exact payload.
+Then it posts them to the pull request itself and gives you the review link —
+you do not have to ask, and the findings do not stay in the terminal. Each one
+becomes an inline comment on the line it refers to, with a *Resolve
+conversation* button.
 
-A PR URL works too, and carries its own host and repository, so you can review
-a PR in a repo you have not configured:
+Tell it not to post and it will keep the review in chat instead.
 
-> Review https://github.com/your-org/your-repo/pull/482
+A PR URL works too, and carries its own repository, so you can review a PR in a
+repo you have not configured:
+
+> Review https://sgithub.fr.world.socgen/your-org/your-repo/pull/482
 
 ## Requirements
 
-- `gh`, authenticated against your host
-- `jq`
-- Bash — built in on macOS and Linux; on Windows use Git Bash or WSL
+Windows, with Git Bash.
+
+- `gh`, authenticated: `gh auth login --hostname sgithub.fr.world.socgen`
+- `jq`: `envinstall jq`
 
 ## Optional configuration
 
-Only `github.host` and `github.repo` are required.
-[`config.example.json`](config.example.json) documents every other key inline —
-JSON has no comments, so the notes live in `_`-prefixed keys the script ignores.
-Copy the pieces you want into `config.json`.
-
-The keys worth knowing:
-
-| Key | What it does |
-| --- | --- |
-| `fetch.maxDiffLines` | Truncate the diff at N lines. Default 800, `0` for unlimited. |
-| `fetch.excludePaths` | Replaces the built-in skip list (lockfiles, bundles, `dist/`, `vendor/`, generated code). |
-| `review.maxFindings` | Hard cap on findings in one review. Default 25. |
-| `review.minSeverityToPost` | Findings below this go in the summary instead of becoming inline comments. |
-| `review.teamRules` | Conventions specific to your repository, applied on top of the built-in checks. |
-
-### Per-team settings
-
-Config resolves in four layers, each overriding the one before:
-
-1. `config.json` — the committed baseline everyone shares
-2. A profile — named overrides selected by `--profile <name>`, the
-   `PR_REVIEW_PROFILE` environment variable, or a `defaultProfile` key
-3. `config.local.json` — gitignored, for one developer or one machine
-4. Command-line flags — for one run
-
-Objects merge key by key, so a profile only states what differs. Arrays replace
-wholesale. The exception is `review.teamRulesAdd`, which appends to the
-inherited rules so a team can extend the baseline without restating it.
-
-```json
-{
-  "github": { "host": "github.com", "repo": "your-org/your-repo" },
-  "review": { "maxFindings": 25, "minSeverityToPost": "MAJOR" },
-
-  "profiles": {
-    "platform": {
-      "fetch": { "maxDiffLines": 2500 },
-      "review": {
-        "minSeverityToPost": "CRITICAL",
-        "teamRulesAdd": [
-          {
-            "id": "migration-needs-rollback",
-            "appliesTo": ["*/migrations/*"],
-            "severity": "BLOCKER",
-            "rule": "Every forward migration needs a tested rollback path."
-          }
-        ]
-      }
-    },
-    "frontend": {
-      "review": { "maxFindings": 10 }
-    }
-  }
-}
-```
-
-The platform team gets a bigger diff budget, a higher bar for inline comments,
-and its migration rule on top of the shared ones. The frontend team inherits
-everything and caps findings at ten. Neither keeps its own copy of the config.
-
-## Running the script directly
-
-```bash
-bash pr-review.sh fetch --pr 482
-bash pr-review.sh post  --pr 482 --comments findings.json --body "Summary" --dry-run
-```
-
-`bash pr-review.sh --help` lists every flag.
-
-## Why it is built this way
-
-**The deterministic work stays in the script.** Path filtering, line-number
-mapping, comment validation and error classification happen in Bash, not in the
-model. The diff arrives with each line's new-file line number already attached,
-so the reviewer never derives one from a hunk header — the most common cause of
-a rejected review.
-
-**Two guards before any write.** The dry run rejects malformed entries, paths
-the PR does not touch, and lines absent from the diff, naming each offender.
-Nothing reaches GitHub until those pass and you say yes.
-
-**Language-agnostic by construction.** The review criteria are properties of
-programs, not of syntax. Ecosystem-specific rules live in configuration, so one
-skill serves a Java service, a React app and a Terraform module.
+Only `github.repo` needs setting. Everything else has a working default —
+diff budget, skipped paths, findings cap, severity floor for posting, and
+`teamRules` for conventions specific to your repository.
+[`config.example.json`](config.example.json) documents every key inline, with
+per-team profiles for repositories shared by more than one team. Copy the
+pieces you want into `config.json`.
 
 ## License
 

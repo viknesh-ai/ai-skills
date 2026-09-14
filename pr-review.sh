@@ -1,21 +1,66 @@
 #!/usr/bin/env bash
+# pr-review.sh — Fetch a GitHub pull request for review, and post the review
+# back as INLINE (line-anchored) comments using the gh CLI. Comments created
+# this way are attached to a specific commit + file + line, so they show up
+# with a "Resolve conversation" button — unlike a plain `gh pr comment`
+# (flat, unresolvable comment).
 #
-# pr-review.sh — fetch a pull request for review, and post a review back as
-# line-anchored comments.
+# Usage:
+#   bash pr-review.sh fetch --pr <PR_NUMBER_OR_URL> \
+#     [--config <path>]               default: config.json beside this script
+#     [--host <GH_HOST>]              default: sgithub.fr.world.socgen
+#     [--repo <OWNER/REPO>]           default: github.repo from the config
+#     [--profile <NAME>]              apply a named profile from the config
+#     [--no-diff]                     metadata only, skip the diff
+#     [--no-annotate]                 plain diff instead of a line-numbered one
+#     [--max-diff-lines <N>]          truncate the diff (default 800, 0 = all)
 #
-#   pr-review.sh fetch --pr <N> [--config <file>] [--host H] [--repo O/R]
-#                      [--no-diff] [--max-diff-lines N]
+#   bash pr-review.sh post --pr <PR_NUMBER_OR_URL> \
+#     --comments <path/to/comments.json> \
+#     [--event COMMENT|APPROVE|REQUEST_CHANGES]  default: COMMENT
+#     [--body <summary text>]         overall review summary (top of the review)
+#     [--body-file <path>]            read the summary from a file instead
+#     [--commit-id <SHA>]             defaults to the PR's current head commit
+#     [--no-verify-paths]             skip the pre-flight path and line checks
+#     [--dry-run]                     build and print the payload, do not post
 #
-#   pr-review.sh post  --pr <N> --comments <file> [--config <file>]
-#                      [--event COMMENT|APPROVE|REQUEST_CHANGES]
-#                      [--body <text> | --body-file <file>]
-#                      [--commit-id <sha>] [--no-verify-paths] [--dry-run]
+# comments.json format (a JSON array):
+# [
+#   {
+#     "path": "src/main/java/.../Foo.java",
+#     "line": 42,
+#     "side": "RIGHT",
+#     "body": "**[MAJOR] ...**\n_explanation..._"
+#   }
+# ]
 #
-# config.json only has to name the host and repo. Diff limits, path exclusions
-# and review conventions are optional overrides of the defaults below.
-# Command-line flags win over the config; the config wins over the defaults.
+# Optional per-comment fields: "start_line", "start_side"
+# (for multi-line comments spanning start_line..line).
 #
-# `post` writes to GitHub. Run it with --dry-run first and show the payload.
+# The "line" value is the line number in the NEW file. `fetch` returns the diff
+# with that number already printed on every commentable line, so copy it from
+# there rather than counting from the @@ hunk header.
+#
+# Configuration:
+# - config.json only has to name the host and the repo.
+# - Diff limits, path exclusions and review conventions are optional overrides;
+#   see config.example.json for every key.
+# - Precedence: command-line flags > config.local.json > profile > config.json.
+#
+# Windows notes:
+# - Run under Git Bash. All payloads are written to temp files rather than
+#   passed as inline arguments, which avoids "Argument list too long" on
+#   Windows for large reviews.
+#
+# Security:
+# - `fetch` only reads. `post` performs a WRITE operation (POST) against the
+#   GitHub API, and is meant to run on every review — the skill posts findings
+#   rather than leaving them in the terminal.
+# - Run --dry-run first to validate the payload. It rejects malformed entries,
+#   paths the PR does not touch and lines absent from the diff, so a bad review
+#   fails locally instead of being half-posted.
+# - --event APPROVE is the exception: never submit an approval the user did not
+#   ask for.
 
 set -euo pipefail
 
@@ -28,7 +73,7 @@ readonly EXIT_API=6
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-DEFAULT_HOST="github.com"
+DEFAULT_HOST="sgithub.fr.world.socgen"
 DEFAULT_MAX_DIFF_LINES=800
 DEFAULT_EVENT="COMMENT"
 
@@ -100,7 +145,7 @@ Usage:
 Common options:
   --config <FILE>          config.json to use (default: alongside this script)
   --profile <NAME>         apply a named profile from the config's "profiles" block
-  --host <HOST>            GitHub host; defaults to github.host from the config
+  --host <HOST>            GitHub host; default: github.host from the config
   --repo <OWNER/REPO>      target repository; a clone URL or web link also works
   -h, --help               show this message
 
@@ -230,7 +275,7 @@ require_tools() {
   command -v gh >/dev/null 2>&1 ||
     die "$EXIT_DEPENDENCY" "GH_NOT_FOUND" "the GitHub CLI is not installed or not in PATH."
   command -v jq >/dev/null 2>&1 ||
-    die "$EXIT_DEPENDENCY" "JQ_NOT_FOUND" "jq is not installed or not in PATH."
+    die "$EXIT_DEPENDENCY" "JQ_NOT_FOUND" "jq is not installed. Run: envinstall jq"
 }
 
 resolve_config_file() {

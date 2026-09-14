@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Write, Grep
 
 # PR Review
 
-Reviews a pull request and delivers the review in chat. Posting back to GitHub is a separate, explicitly confirmed step.
+Reviews a pull request, delivers the review in chat, and posts it to the pull request. Posting is part of the run, not something to ask about.
 
 Nothing about a particular company, host or repository belongs in this file. The target lives in `config.json` and every command reads it from there. Never hardcode a hostname or an owner/repo; if the user names a different repository, pass it as a flag for that run.
 
@@ -28,13 +28,13 @@ Run the script from the skill folder or give its full path. It finds `config.jso
 ```json
 {
   "github": {
-    "host": "<hostname>",
+    "host": "sgithub.fr.world.socgen",
     "repo": "<owner>/<repo>"
   }
 }
 ```
 
-`host` is `github.com` for public GitHub, or the internal hostname for a GitHub Enterprise install. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
+`host` ships as `sgithub.fr.world.socgen` and rarely changes. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
 
 ## Step 1 — Identify the pull request
 
@@ -116,9 +116,16 @@ The scale: 🔴 BLOCKER for security holes, data loss and leaked secrets. 🟠 C
 
 Close with one paragraph: overall quality, the single biggest concern, and a recommendation of approve, request changes, or discuss. If the diff was truncated or files were excluded, name what went unread.
 
-## Step 5 — Offer next actions
+## Step 5 — Post the review
 
-Offer to post the review as a flat comment, or as an inline review anchored to file and line. Offer a re-run with a larger diff budget when the diff was truncated. Post nothing without an explicit yes.
+Posting is the point of the skill, so do it without asking. Go straight to step 6 once the review is written: validate, post, report the URL. Do not ask whether to post, do not offer posting as a choice, and do not stop after showing the findings in chat.
+
+Only two things stop a post. Say plainly what happened rather than retrying blindly:
+
+- The dry run in step 6 reports a problem. Fix the entries and run it again.
+- The user said in this conversation not to post. Then deliver the review in chat alone.
+
+When the diff was truncated, post what you have and name the unread tail in the summary, offering a re-run with a larger budget.
 
 ## Step 6 — Post an inline review
 
@@ -139,7 +146,7 @@ Write one object per finding, copying `line` straight from the annotated diff:
 
 Use `side: "RIGHT"` for added and context lines and `"LEFT"` only for a removed line. Add `start_line` with `start_side` for a range. Only lines present in the diff can carry a comment: a finding without a line — a missing file, an architectural concern, a problem spanning several files — goes in the summary body instead, and the script rejects `subject_type` entries rather than letting the API fail.
 
-Preview first, always, and show the user the payload:
+Validate first, always. The dry run is a correctness check, not a request for permission:
 
 ```bash
 bash pr-review.sh post \
@@ -149,9 +156,9 @@ bash pr-review.sh post \
   --dry-run
 ```
 
-The dry run checks every entry's shape, confirms each path is a file the PR touches, and confirms each line actually exists in the diff — so a wrong number is caught locally instead of GitHub rejecting the whole review. Fix anything it reports and run it again.
+The dry run checks every entry's shape, confirms each path is a file the PR touches, and confirms each line actually exists in the diff — so a wrong number is caught locally instead of GitHub rejecting the whole review. Fix anything it reports and run it again until it passes.
 
-Then, only after an explicit confirmation, drop `--dry-run`:
+Then post, in the same turn, by dropping `--dry-run`:
 
 ```bash
 bash pr-review.sh post \
@@ -161,7 +168,7 @@ bash pr-review.sh post \
   --event COMMENT
 ```
 
-`--event` is `COMMENT`, `APPROVE` or `REQUEST_CHANGES`, defaulting to `COMMENT` unless the config sets `review.defaultEvent`. Never choose `APPROVE` unprompted — approving is the user's call. Post findings of MAJOR and above, or at `reviewConfig.minSeverityToPost` when set, and fold the rest into the summary. `--commit-id` defaults to the current head. The script prints the review URL on success.
+`--event` is `COMMENT`, `APPROVE` or `REQUEST_CHANGES`, defaulting to `COMMENT` unless the config sets `review.defaultEvent`. Post as `COMMENT` unless the user asked for something else. Never choose `APPROVE` unprompted — posting findings is automatic, but signing off on a change is the user's call. Post findings of MAJOR and above, or at `reviewConfig.minSeverityToPost` when set, and fold the rest into the summary. `--commit-id` defaults to the current head. The script prints the review URL on success — end your reply with that URL so the user can open the review.
 
 ## Optional configuration
 
@@ -177,7 +184,7 @@ Under `review`: `defaultEvent` sets what `post` submits without `--event`, `maxF
 
 ```json
 {
-  "github": { "host": "<hostname>", "repo": "<owner>/<repo>" },
+  "github": { "host": "sgithub.fr.world.socgen", "repo": "<owner>/<repo>" },
   "fetch": { "maxDiffLines": 2000, "excludePaths": ["*.lock", "*/generated/*"] },
   "review": {
     "maxFindings": 15,
@@ -212,4 +219,4 @@ Exit `1` usage, `2` missing dependency, `3` authentication, `4` not found, `5` i
 
 ## Safety
 
-`fetch` only reads. `post` writes to GitHub and needs an explicit confirmation every time, after a dry run whose payload the user has seen. Never echo tokens, never submit an approval the user did not ask for, and never edit source files from this skill.
+`fetch` only reads. `post` writes to GitHub, and writing is the expected outcome of a review — it runs on every review, gated by the dry run rather than by a question. What stays off limits: never submit an `APPROVE` the user did not ask for, never echo tokens, and never edit source files from this skill.
