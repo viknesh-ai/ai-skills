@@ -16,10 +16,10 @@ Nothing about a particular company, host or repository belongs in this file. The
 pr-review/
 ├── SKILL.md          this file
 ├── config.json       the GitHub host and repository to review
-└── pr-review.ps1     fetch and post
+└── pr-review.sh      fetch and post
 ```
 
-The script is PowerShell and runs on Windows PowerShell 5.1 or PowerShell 7. Run it from the skill folder or give its full path. It finds `config.json` next to itself, at `--config <file>`, or at `$env:PR_REVIEW_CONFIG`.
+Run the script from the skill folder or give its full path. It finds `config.json` next to itself, at `--config <file>`, or at `$PR_REVIEW_CONFIG`.
 
 ## Configure once
 
@@ -32,7 +32,7 @@ The script is PowerShell and runs on Windows PowerShell 5.1 or PowerShell 7. Run
 }
 ```
 
-`host` ships as `sgithub.fr.world.socgen`. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The only dependency is the GitHub CLI, authenticated against that host — the script needs no `jq` and no other tooling. Optional tuning keys are listed near the end; none is required.
+`host` ships as `sgithub.fr.world.socgen`. `repo` is the owner and name from the URL path, not the URL. The script refuses to run while `repo` is still the `OWNER/REPO` placeholder. The environment needs the GitHub CLI authenticated against that host, and `jq` on the PATH. Optional tuning keys are listed near the end; none is required.
 
 ## Step 1 — Identify the pull request
 
@@ -40,8 +40,8 @@ The script is PowerShell and runs on Windows PowerShell 5.1 or PowerShell 7. Run
 
 ## Step 2 — Fetch
 
-```powershell
-.\pr-review.ps1 fetch --pr <NUMBER_OR_URL>
+```bash
+bash pr-review.sh fetch --pr <NUMBER_OR_URL>
 ```
 
 One JSON document returns on stdout: title, author, branches, head SHA, changed files with add and delete counts, labels, CI status, existing reviews, and the diff with generated and vendored files already removed.
@@ -139,11 +139,11 @@ Use `side: "RIGHT"` for added and context lines and `"LEFT"` only for a removed 
 
 Preview first, always, and show the user the payload:
 
-```powershell
-.\pr-review.ps1 post `
-  --pr <NUMBER_OR_URL> `
-  --comments <path\to\comments.json> `
-  --body "<review summary>" `
+```bash
+bash pr-review.sh post \
+  --pr <NUMBER_OR_URL> \
+  --comments <path/to/comments.json> \
+  --body "<review summary>" \
   --dry-run
 ```
 
@@ -151,11 +151,11 @@ The dry run checks every entry's shape, confirms each path is a file the PR touc
 
 Then, only after an explicit confirmation, drop `--dry-run`:
 
-```powershell
-.\pr-review.ps1 post `
-  --pr <NUMBER_OR_URL> `
-  --comments <path\to\comments.json> `
-  --body-file <path\to\summary.md> `
+```bash
+bash pr-review.sh post \
+  --pr <NUMBER_OR_URL> \
+  --comments <path/to/comments.json> \
+  --body-file <path/to/summary.md> \
   --event COMMENT
 ```
 
@@ -198,7 +198,7 @@ Exit `1` usage, `2` missing dependency, `3` authentication, `4` not found, `5` i
 
 | Tag | What to do |
 |---|---|
-| `GH_NOT_FOUND` | Install the GitHub CLI and make sure `gh` is on the PATH. |
+| `GH_NOT_FOUND`, `JQ_NOT_FOUND` | Install the missing tool. |
 | `GH_AUTH_FAILED`, `GH_AUTH_ERROR` | Authenticate the CLI against the configured host, or the account lacks access. |
 | `REPO_NOT_CONFIGURED`, `INVALID_REPO` | Set `github.repo` in `config.json`, or pass `--repo`. |
 | `PR_NOT_FOUND` | Wrong number, wrong repository, or wrong host. |
