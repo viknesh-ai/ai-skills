@@ -524,6 +524,7 @@ function ConvertTo-AnnotatedDiff {
 
     $output = New-Object System.Collections.Generic.List[string]
     $skip = $false
+    $inHunk = $false
     $lineNumber = 0
 
     foreach ($line in $DiffLines) {
@@ -531,17 +532,22 @@ function ConvertTo-AnnotatedDiff {
             $marker = $line.IndexOf(' b/')
             $current = if ($marker -ge 0) { $line.Substring($marker + 3) } else { '' }
             $skip = $Excluded -contains $current
+            $inHunk = $false
             if (-not $skip) { $output.Add($line) }
             continue
         }
         if ($skip) { continue }
         if (-not $Annotate) { $output.Add($line); continue }
-        if ($line -like 'index *' -or $line -like '--- *' -or $line -like '+++ *' -or $line -like '\*') { continue }
         if ($line -like '@@ *') {
             if ($line -match '\+([0-9]+)') { $lineNumber = [int]$Matches[1] }
+            $inHunk = $true
             $output.Add($line)
             continue
         }
+        # Everything between "diff --git" and the first hunk is git's extended
+        # header - index, mode, rename and ---/+++ lines - and is not content.
+        if (-not $inHunk) { continue }
+        if ($line -like '\*') { continue }
         if (-not $line) { $output.Add('') ; continue }
 
         $tag  = $line.Substring(0, 1)
@@ -564,19 +570,23 @@ function Get-RightLineIndex {
 
     $index = New-Object 'System.Collections.Generic.HashSet[string]'
     $current = ''
+    $inHunk = $false
     $lineNumber = 0
 
     foreach ($line in $DiffLines) {
         if ($line -like 'diff --git *') {
             $marker = $line.IndexOf(' b/')
             $current = if ($marker -ge 0) { $line.Substring($marker + 3) } else { '' }
+            $inHunk = $false
             continue
         }
-        if ($line -like 'index *' -or $line -like '--- *' -or $line -like '+++ *' -or $line -like '\*') { continue }
         if ($line -like '@@ *') {
             if ($line -match '\+([0-9]+)') { $lineNumber = [int]$Matches[1] }
+            $inHunk = $true
             continue
         }
+        if (-not $inHunk) { continue }
+        if ($line -like '\*') { continue }
         if ($line -like '-*') { continue }
         [void]$index.Add("$current`t$lineNumber")
         $lineNumber++
