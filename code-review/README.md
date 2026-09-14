@@ -17,13 +17,16 @@ Works with any repository and any programming language.
 
 ## Install
 
-From the root of this repository:
+Copy this folder into `.github/skills/` so everyone working in the repository
+picks it up.
 
 ```bash
-./install.sh
+mkdir -p .github/skills
+cp -r code-review .github/skills/pr-review
+chmod +x .github/skills/pr-review/pr-review.sh
 ```
 
-Then set your repository in `~/.claude/skills/pr-review/config.json`:
+Then set your repository in `.github/skills/pr-review/config.json`:
 
 ```json
 {
@@ -43,7 +46,7 @@ Ask in plain language:
 
 > Review PR 482
 
-Claude fetches the PR, reviews the changed lines, and writes the findings in
+Copilot fetches the PR, reviews the changed lines, and writes the findings in
 chat like this:
 
 ```

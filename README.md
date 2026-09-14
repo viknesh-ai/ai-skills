@@ -1,6 +1,6 @@
 # ai-skills
 
-Agent Skills for Claude Code.
+Agent Skills for GitHub Copilot.
 
 | Skill | What it does |
 | --- | --- |
@@ -8,16 +8,19 @@ Agent Skills for Claude Code.
 
 ## Install
 
-Clone this repository and run the install script. It copies the skills into
-`~/.claude/skills`, so they work in every repository you open.
+Clone the repository and copy the skill into `.github/skills/`.
 
 ```bash
 git clone https://sgithub.fr.world.socgen/your-org/ai-skills.git
-cd ai-skills
-./install.sh
+mkdir -p .github/skills
+cp -r ai-skills/code-review .github/skills/pr-review
+chmod +x .github/skills/pr-review/pr-review.sh
 ```
 
-Then set your repository in `~/.claude/skills/pr-review/config.json`:
+Checked into `.github/skills/`, the skill is picked up by everyone working in
+the repository.
+
+Then set your repository in `.github/skills/pr-review/config.json`:
 
 ```json
 {
@@ -36,7 +39,7 @@ Just ask:
 
 > Review PR 482
 
-Claude fetches the pull request, reviews the diff, and shows you the findings
+Copilot fetches the pull request, reviews the diff, and shows you the findings
 ranked by severity. If you say yes, it posts them back to the PR as inline
 comments on the **Files changed** tab.
 

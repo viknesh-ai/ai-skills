@@ -13,7 +13,7 @@ Nothing about a particular company, host or repository belongs in this file. The
 ## Files
 
 ```
-pr-review/
+.github/skills/pr-review/
 ├── SKILL.md          this file
 ├── config.json       the GitHub host and repository to review
 └── pr-review.sh      fetch and post
