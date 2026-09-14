@@ -16,7 +16,7 @@ programming language.
 
 - `gh`, authenticated against your host
 - `jq`
-- Bash — macOS, Linux, or WSL / Git Bash on Windows
+- Bash — built in on macOS and Linux; on Windows use Git Bash or WSL
 
 ## Install
 
@@ -31,6 +31,24 @@ the repository, point it at your agent's own skills directory instead:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh | AI_SKILLS_DEST=~/.config/skills bash -s -- code-review
+```
+
+### On Windows
+
+Open **Git Bash** (it ships with Git for Windows) and run the command above
+exactly as written. The skill runs `bash` and `jq`, so Git Bash or WSL is
+required anyway — installing from the same shell you will use it in is the
+simplest path.
+
+**In PowerShell, `curl` is not curl.** PowerShell aliases it to
+`Invoke-WebRequest`, which has no `-fsSL`, so the one-liner fails with *a
+parameter cannot be found that matches parameter name 'fsSL'*. Windows does
+ship the real curl — it is `curl.exe`. Download the installer, then run it in
+Git Bash:
+
+```powershell
+curl.exe -fsSL -o install.sh https://raw.githubusercontent.com/viknesh-ai/ai-skills/main/install.sh
+bash install.sh
 ```
 
 Then set your repository in the skill's `config.json`:
