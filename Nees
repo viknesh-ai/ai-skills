@@ -1,0 +1,112 @@
+Context: Jira DATAUSER-6454. On Azure, "Deploy data source", "Deploy feeder access" and "Request workspace" must stay available to everyone who could use them before this story, except Data Content Managers (DCM) of a different BU/SU than the dataset. Dataset managers and backup managers must keep access. This branch already has UserService.isDataContentManagerForDataset(JpaEntity), UserService.ACCESS_DENIED_DATA_CONTENT_MANAGER and the azureDeployable field on DatasetWithoutDatasourceDto.
+
+Make exactly these changes and nothing else. No refactoring, no new comments, no formatting changes to untouched lines.
+
+1. src/main/java/com/socgen/bigdata/catalog/services/EntityService.java
+   a) Add this public method directly after the hasRightEdit(Long entityId, Integer targetBuSuOwnershipId) method:
+
+    public boolean hasAzureDataSourceDeployRight(JpaEntity dataset) {
+        if (userService.isAdmin() || userService.isDataContentManagerForDataset(dataset)) {
+            return true;
+        }
+
+        String mail = userService.getMail();
+
+        return Stream.of(dataset.getManagerDatasetPersons(), dataset.getManagerBackupDatasetPersons())
+            .filter(Objects::nonNull)
+            .flatMap(Collection::stream)
+            .anyMatch(person -> person.getEmail() != null && person.getEmail().equalsIgnoreCase(mail));
+    }
+
+   b) In setRightsToDto, replace the existing statement
+          entityDetailDto.setAzureDeployable(
+              userService.isAdmin() || userService.isDataContentManagerForDataset(entity.get())
+          );
+      with
+          entityDetailDto.setAzureDeployable(hasAzureDataSourceDeployRight(entity.get()));
+
+2. src/main/java/com/socgen/bigdata/catalog/services/datasource/DataSourceService.java
+   a) In deploy(Long id, DataSourceDeployRequest deployRequest), replace the existing Azure rights check (the if block that uses !userService.isAdmin() && !userService.isDataContentManagerForDataset(dataset) and throws InsufficientRightException) with:
+
+        if (
+            dataSource.getHostingPlatform() == HostingPlatform.AZURE &&
+            !datasetService.hasAzureDataSourceDeployRight(dataset)
+        ) {
+            throw new InsufficientRightException(UserService.ACCESS_DENIED_DATA_CONTENT_MANAGER);
+        }
+
+      Do not touch the existing isAdminOrIsDatasetManager check that follows it.
+
+   b) In deployPermission(Long id, DataSourcePermissionDeployRequest permissionDeployRequest), replace the existing rights check (the if block that uses !userService.isAdmin() && !userService.isDataContentManagerForDataset(dataset)) with:
+
+        if (!Boolean.TRUE.equals(datasetService.hasRightEdit(dataset.getId(), null))) {
+            throw new InsufficientRightException(UserService.ACCESS_DENIED_DATA_CONTENT_MANAGER);
+        }
+
+      Keep its position (right after the dataset is fetched).
+
+   c) If the userService field in DataSourceService is no longer used anywhere in the class after these changes, remove the field, its constructor parameter, its constructor assignment and its import. If it is still used, leave it.
+
+3. src/main/java/com/socgen/bigdata/catalog/services/FeederAccessService.java
+   a) Add the field
+          private final EntityService entityService;
+      directly after
+          private final UserService userService;
+      The class uses @RequiredArgsConstructor, so do not write a constructor.
+
+   b) In createFeederAccessAndCallSelfService, replace the existing rights check (the if block that uses HostingPlatform.AZURE.name().equalsIgnoreCase(hostingPlatform) && !userService.isAdmin() && !userService.isDataContentManagerForDataset(dataset)) with:
+
+        if (
+            HostingPlatform.AZURE.name().equalsIgnoreCase(hostingPlatform) &&
+            !Boolean.TRUE.equals(entityService.hasRightEdit(dataset.getId(), null))
+        ) {
+            throw new InsufficientRightException(UserService.ACCESS_DENIED_DATA_CONTENT_MANAGER);
+        }
+
+      If userService is no longer used anywhere in FeederAccessService after this, leave the field in place anyway (it existed before this branch).
+
+4. Tests
+   a) src/test/java/com/socgen/bigdata/catalog/services/datasource/DataSourceServiceTest.java
+      - In the existing Azure deploy tests, stub the EntityService mock (the mock injected as datasetService) with hasAzureDataSourceDeployRight(any()) returning true.
+      - In the existing deployPermission tests, stub hasRightEdit(anyLong(), isNull()) returning true.
+      - Update the access-denied tests added on this branch: deploy denied when hasAzureDataSourceDeployRight returns false; deployPermission denied when hasRightEdit returns false. Both assert InsufficientRightException with UserService.ACCESS_DENIED_DATA_CONTENT_MANAGER.
+      - Remove any userService stubs added on this branch that are no longer used, so strict stubbing does not fail. If userService was removed from DataSourceService in step 2c, also remove its @Mock from this test.
+   b) src/test/java/com/socgen/bigdata/catalog/services/FeederAccessServiceTest.java (or the existing FeederAccessService test class)
+      - Add @Mock EntityService entityService.
+      - Update the tests added on this branch: hostingPlatform "azure" and hasRightEdit(anyLong(), isNull()) false -> throws InsufficientRightException; hostingPlatform "azure" and hasRightEdit true -> no exception from the rights check; hostingPlatform "lucid" -> hasRightEdit is never called.
+      - Remove userService stubs added on this branch that are no longer used.
+   c) src/test/java/com/socgen/bigdata/catalog/services/EntityServiceTest.java
+      Add tests for hasAzureDataSourceDeployRight, following the existing Given_When_Then naming:
+      - admin -> true
+      - not admin, isDataContentManagerForDataset true -> true
+      - not admin, not DCM, user email (different case) in managerDatasetPersons -> true
+      - not admin, not DCM, user email in managerBackupDatasetPersons -> true
+      - not admin, not DCM, email not in either list, lists may be null -> false
+      Update any existing test on this branch that asserts azureDeployable so it matches the new method.
+
+After editing, run:
+mvn test -Dtest=DataSourceServiceTest,EntityServiceTest,FeederAccessServiceTest,UserServiceTest
+Fix only failures caused by these changes. Then show me the final diff for every file you changed.
+
+
+
+frontend 
+Context: Jira DATAUSER-6454. The backend's azureDeployable flag now covers Admin, Data Content Manager of the dataset's BU/SU, dataset managers and backup managers. "Deploy feeder access" and "Request workspace" must go back to their original visibility rule (dataset.editable), which the backend now enforces the same way.
+
+Make exactly these changes and nothing else. No refactoring, no new comments, no formatting changes to untouched lines.
+
+1. src/sdc-dataset/components/Dataset/data-source/card/DataSourceCard.tsx
+   - Do not change hasDataSourceDeployPermission, isAzureDataSource, canShowDeployAction, or the "Deploy data source" button condition.
+   - In the else branch that renders the "Deploy feeder" button (the block starting with `canShowDeployAction && editable && canDeployFeederWithoutProjects &&`), remove only `canShowDeployAction &&`, so it starts with `editable && canDeployFeederWithoutProjects &&` exactly as on the develop branch.
+
+2. src/sdc-dataset/components/Dataset/data-lake-workspace/FeederAccessCard.tsx
+   - Revert the Request workspace button condition to exactly `{showRequestWorkspaceButton && (` as on the develop branch, removing the added `(feederAccess?.hostingPlatform !== FeederAccessHostingPlatform.AZURE || dataset?.azureDeployable) &&` part.
+   - Remove FeederAccessHostingPlatform from the feederAccess.service.types import only if nothing else in this file uses it.
+
+3. Do not change any other file. Keep as they are: user.context.tsx, DatasetPage.tsx, datasets.service.types.ts (azureDeployable stays), DataSourceDeployConfirmationDialog.tsx, DataSourceDeployPermissionDialog.tsx, RequestWorkspaceConfirmationDialog.tsx, locales/en.json.
+
+After editing:
+- Run `yarn tsc --noEmit` and the repo's lint script. Fix only errors caused by these changes. Ignore pre-existing errors in files you did not touch.
+- Run existing tests for DataSourceCard and FeederAccessCard if they exist.
+- Show me the final diff for both files.
+
